@@ -1,0 +1,5 @@
++ code snippets: to do unimportant stuff fast
++ implement topics from docs: swift structures which are wrappers on C pointer: https://developer.apple.com/documentation/swift/swift_standard_library/c_interoperability
++ sometimes manual memory management is important
++ how buffers are organized: e.g. bytesPerRow
++ bridging is ok: why objc over swift
