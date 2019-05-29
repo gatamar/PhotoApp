@@ -10,5 +10,7 @@
 
 @interface ContourDetector : NSObject
 
+// we receive an array of bytes and give some lines.
+
 
 @end
