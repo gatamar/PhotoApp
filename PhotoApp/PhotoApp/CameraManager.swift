@@ -92,6 +92,9 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         // TODO: add autorelease pool here
         
+        // let's say I want to process this sample buffer in real time.
+        // i want to pass it to the opencv algorithm. right now.
+        
         self.videoLayer?.enqueue(sampleBuffer)
         self.videoLayer?.setNeedsDisplay()
     }
