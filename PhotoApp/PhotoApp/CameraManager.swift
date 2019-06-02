@@ -9,6 +9,10 @@
 import Foundation
 import AVFoundation
 
+protocol LineOutputDelegate {
+    func displayLines(_ lines: [Line?]) -> Void
+}
+
 class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     
     var captureSession: AVCaptureSession?
@@ -16,6 +20,7 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     var input: AVCaptureDeviceInput?
     var videoDataOutput: AVCaptureVideoDataOutput?
     var videoLayer: AVSampleBufferDisplayLayer?
+    var lineOutput: LineOutputDelegate?
     
     init(with layer: AVSampleBufferDisplayLayer) {
         super.init()
@@ -92,8 +97,13 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         // TODO: add autorelease pool here
         
-        // let's say I want to process this sample buffer in real time.
-        // i want to pass it to the opencv algorithm. right now.
+        let imageBuffer : CVPixelBuffer? = CMSampleBufferGetImageBuffer(sampleBuffer)
+        let srcPtr = Unmanaged.passUnretained(imageBuffer!).toOpaque()
+        let pixelBuffer = Unmanaged<CVPixelBuffer>.fromOpaque(srcPtr).takeUnretainedValue()
+        
+        let detector = ContourDetector()
+        let lines = detector.detectLines(pixelBuffer)
+        self.lineOutput?.displayLines(lines!)
         
         self.videoLayer?.enqueue(sampleBuffer)
         self.videoLayer?.setNeedsDisplay()

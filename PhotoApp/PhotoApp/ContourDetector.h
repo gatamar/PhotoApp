@@ -7,10 +7,18 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <CoreVideo/CoreVideo.h>
+
+@interface Line: NSObject
+
+@property (assign) CGPoint p1;
+@property (assign) CGPoint p2;
+
+@end
 
 @interface ContourDetector : NSObject
 
-// we receive an array of bytes and give some lines.
-
+- (NSArray<Line*>*)detectLines:(CVPixelBufferRef)pixelBuffer;
 
 @end
+

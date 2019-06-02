@@ -20,28 +20,25 @@ struct ContourParams
     float m_sigma = 2;
 };
 
-struct MyLine
-{
-    CGPoint p1;
-    CGPoint p2;
-};
-
 class MyImage
 {
     int m_width = 0, m_height = 0;
     unsigned char* m_rgba = 0;
 
 public:
-    MyImage()
+    MyImage() = default;
+    MyImage(int w, int h, unsigned char* rgba): m_width(w), m_height(h)
     {
-        
+        m_rgba = new unsigned char[w*h*4];
+        memcpy(m_rgba, rgba, w*h*4);
     }
     ~MyImage()
     {
-        delete [] m_rgba;
+        if (m_rgba) delete [] m_rgba;
     }
     int getWidth() const { return m_width; }
     int getHeight() const { return m_height; }
+    unsigned char* getData() const { return m_rgba; }
 };
 
 cv::Mat getImageForContourDetection(cv::Mat& src)
@@ -100,11 +97,13 @@ std::vector<std::vector<cv::Point>> getContours(cv::Mat& edges, ContourParams& p
     return contours;
 }
 
-void processImageForLines(const MyImage& in, ContourParams& params)
+@implementation Line
+@end
+
+NSArray<Line*>* processImageForLines(const MyImage& img, ContourParams& params)
 {
-    unsigned char* bytes_to_allock = 0;
-    cv::Mat src; // TODO: convert "in" to src.
-    assert( src.empty() );
+    cv::Mat src = cv::Mat( img.getHeight(), img.getWidth(), CV_8UC4, img.getData() );
+    assert( !src.empty() );
     
     cv::Mat src_small;
     float work_scale = std::max(src.rows, src.cols)/300;
@@ -120,10 +119,8 @@ void processImageForLines(const MyImage& in, ContourParams& params)
     cv::Mat binary = getBinaryImageWithContours(src_small.rows, src_small.cols, contours, params);
     cv::Mat linesP = getHoughLinesP(binary);
     
-    delete [] bytes_to_allock;
-    
     cv::Mat contours_big;
-    cv::resize(binary, contours_big, cv::Size(in.getWidth(), in.getHeight()));
+    cv::resize(binary, contours_big, cv::Size(img.getWidth(), img.getHeight()));
     cv::cvtColor(contours_big, contours_big, cv::COLOR_GRAY2BGRA);
     
     std::vector<std::vector<CGPoint>> contours2(contours.size());
@@ -136,17 +133,28 @@ void processImageForLines(const MyImage& in, ContourParams& params)
         smoothLineWithGaussianKernel(contours2_cur, 3, params.m_sigma);
     }
     
-    std::vector<MyLine> result_lines;
+    NSMutableArray<Line*>* resultLines = [[NSMutableArray alloc] init];
+    
     for ( int i=0; i<contours2.size(); ++i)
     {
         for ( int k=1; k<contours2[i].size(); ++k)
         {
-            MyLine cur_line;
-            cur_line.p1 = contours2[i][k-1]; //* work_scale
-            cur_line.p2 = contours2[i][k]; //* work_scale
-            result_lines.push_back(cur_line);
+            Line* line = [[Line alloc] init];
+            line.p1 = CGPointMake(100, 100);
+            line.p2 = CGPointMake(700, 700);
+            [resultLines addObject:line];
+            
+//            MyLine cur_line;
+//            cur_line.p1 = contours2[i][k-1]; //* work_scale
+//            cur_line.p2 = contours2[i][k]; //* work_scale
+//            result_lines.push_back(cur_line);
         }
     }
+    
+    // TODO: filter this lines like in work proj.
+    // TODO: maybe scale these lines
+    
+    return resultLines;
 }
 
 int clampi(int x, int a, int b)
@@ -199,3 +207,65 @@ void smoothLineWithGaussianKernel(std::vector<CGPoint>& vec, int kern_size, floa
     
     vec = std::move(smooth);
 }
+
+@interface ContourDetector ()
+@end
+
+@implementation ContourDetector
+
+- (NSArray<Line*>*)detectLines:(CVPixelBufferRef)pixelBuffer
+{
+    MyImage my_image = [self createMyImageFromPixelBuffer:pixelBuffer];
+    ContourParams params;
+    return processImageForLines(my_image, params);
+}
+
+- (CVPixelBufferRef)createBufferDeepCopy:(CVPixelBufferRef)pixelBuffer
+{
+    CVPixelBufferRef pbCopy = NULL;
+    CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+    int bufferWidth = (int)CVPixelBufferGetWidth(pixelBuffer);
+    int bufferHeight = (int)CVPixelBufferGetHeight(pixelBuffer);
+    size_t bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer);
+    void *baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer);
+    
+    CVReturn status = CVPixelBufferCreate(kCFAllocatorDefault, bufferWidth, bufferHeight, CVPixelBufferGetPixelFormatType(pixelBuffer), NULL, &pbCopy);
+    assert( status == 0 );
+    
+    CVPixelBufferLockBaseAddress(pbCopy, 0);
+    void *copyBaseAddress = CVPixelBufferGetBaseAddress(pbCopy);
+    memcpy(copyBaseAddress, baseAddress, bufferHeight * bytesPerRow);
+    CVPixelBufferUnlockBaseAddress(pbCopy, 0);
+    
+    return pbCopy;
+}
+
+// is there a possiblity to create cv::Mat from not-strided data? e.g. "bytesPerRow != width*4" ?
+- (MyImage)createMyImageFromPixelBuffer:(CVPixelBufferRef)pixelBuffer
+{
+    CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+    int width = (int)CVPixelBufferGetWidth(pixelBuffer);
+    int height = (int)CVPixelBufferGetHeight(pixelBuffer);
+    size_t bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer);
+    
+    CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+    
+    unsigned char* baseAddress = (unsigned char*)CVPixelBufferGetBaseAddress(pixelBuffer);
+    
+    unsigned char *rgba_data = new unsigned char[width*height*4];
+    if ( bytesPerRow == width*4 )
+        memcpy(rgba_data, baseAddress, width*height*4);
+    else
+    {
+        for ( int y=0; y<height; ++y)
+        {
+            memcpy(rgba_data + y*width*4, baseAddress + y*bytesPerRow, width*4);
+        }
+    }
+    
+    CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+    
+    return MyImage(width, height, rgba_data);
+}
+
+@end

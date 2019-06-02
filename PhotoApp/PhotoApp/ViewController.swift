@@ -9,9 +9,10 @@
 import UIKit
 import AVFoundation
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, LineOutputDelegate {
 
     var videoLayer: AVSampleBufferDisplayLayer?
+    var edgesLayer: CAShapeLayer?
     var cameraManager: CameraManager?
     
     override func viewDidLoad() {
@@ -37,6 +38,26 @@ class ViewController: UIViewController {
     func initCameraManager() {
         // TODO: fix constructor naming
         self.cameraManager = CameraManager(with: self.videoLayer!)
+        self.cameraManager!.lineOutput = self
+    }
+    
+    func displayLines(_ lines: [Line?]) {
+        
+        return
+        
+        if ( self.edgesLayer == nil ) {
+            self.edgesLayer = CAShapeLayer()
+            self.edgesLayer?.frame = self.videoLayer!.bounds
+        }
+        
+        let path = CGMutablePath()
+        for line in lines {
+            path.move(to: line!.p1)
+            path.addLine(to: line!.p2)
+        }
+        
+        // TODO: profile for memory leaks
+        self.edgesLayer?.path = path
     }
 }
 
