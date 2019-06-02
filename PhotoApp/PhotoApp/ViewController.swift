@@ -43,11 +43,16 @@ class ViewController: UIViewController, LineOutputDelegate {
     
     func displayLines(_ lines: [Line?]) {
         
-        return
-        
         if ( self.edgesLayer == nil ) {
-            self.edgesLayer = CAShapeLayer()
-            self.edgesLayer?.frame = self.videoLayer!.bounds
+            let layer = CAShapeLayer()
+            layer.frame = self.videoLayer!.bounds
+            layer.lineWidth = 1.5
+            layer.fillColor = nil
+            layer.strokeColor = UIColor.white.cgColor
+            layer.opacity = 1.0
+            layer.isOpaque = true
+            self.edgesLayer = layer
+            self.videoLayer!.addSublayer(self.edgesLayer!)
         }
         
         let path = CGMutablePath()
@@ -56,6 +61,7 @@ class ViewController: UIViewController, LineOutputDelegate {
             path.addLine(to: line!.p2)
         }
         
+        let layer2 = self.edgesLayer!
         // TODO: profile for memory leaks
         self.edgesLayer?.path = path
     }

@@ -11,6 +11,7 @@
 #include <opencv2/imgproc.hpp>
 
 void smoothLineWithGaussianKernel(std::vector<CGPoint>& vec, int kern_size, float sigma);
+CGPoint CGPointScaled(const CGPoint& p, float scale);
 
 struct ContourParams
 {
@@ -27,10 +28,15 @@ class MyImage
 
 public:
     MyImage() = default;
-    MyImage(int w, int h, unsigned char* rgba): m_width(w), m_height(h)
+    MyImage(int w, int h, unsigned char* rgba, bool owner=true): m_width(w), m_height(h)
     {
-        m_rgba = new unsigned char[w*h*4];
-        memcpy(m_rgba, rgba, w*h*4);
+        if ( owner )
+            m_rgba = rgba;
+        else
+        {
+            m_rgba = new unsigned char[w*h*4];
+            memcpy(m_rgba, rgba, w*h*4);
+        }
     }
     ~MyImage()
     {
@@ -135,24 +141,18 @@ NSArray<Line*>* processImageForLines(const MyImage& img, ContourParams& params)
     
     NSMutableArray<Line*>* resultLines = [[NSMutableArray alloc] init];
     
-    for ( int i=0; i<contours2.size(); ++i)
+    for ( int i=0; i<contours2.size(); ++i) // contours2.size()
     {
         for ( int k=1; k<contours2[i].size(); ++k)
         {
             Line* line = [[Line alloc] init];
-            line.p1 = CGPointMake(100, 100);
-            line.p2 = CGPointMake(700, 700);
+            line.p1 = CGPointScaled( CGPointMake(contours2[i][k-1].x, contours2[i][k-1].y), work_scale);
+            line.p2 = CGPointScaled( CGPointMake(contours2[i][k].x, contours2[i][k].y), work_scale);
             [resultLines addObject:line];
-            
-//            MyLine cur_line;
-//            cur_line.p1 = contours2[i][k-1]; //* work_scale
-//            cur_line.p2 = contours2[i][k]; //* work_scale
-//            result_lines.push_back(cur_line);
         }
     }
     
     // TODO: filter this lines like in work proj.
-    // TODO: maybe scale these lines
     
     return resultLines;
 }
