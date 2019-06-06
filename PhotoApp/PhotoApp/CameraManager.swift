@@ -9,38 +9,38 @@
 import Foundation
 import AVFoundation
 
-protocol LineOutputDelegate {
-    func displayLines(_ lines: [Line?]) -> Void
+protocol LineOutputDelegate: class {
+    func displayLines(_ lines: [Line?])
 }
 
 class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
-    
+
     var captureSession: AVCaptureSession?
     var device: AVCaptureDevice?
     var input: AVCaptureDeviceInput?
     var videoDataOutput: AVCaptureVideoDataOutput?
     var videoLayer: AVSampleBufferDisplayLayer?
-    var lineOutput: LineOutputDelegate?
-    
+    weak var lineOutput: LineOutputDelegate?
+
     init(with layer: AVSampleBufferDisplayLayer) {
         super.init()
-        
+
         self.videoLayer = layer
         initCameraController()
         setOrientation(orientation: AVCaptureVideoOrientation.portrait)
         startCapturing()
     }
-    
+
     func initCameraController() {
         self.captureSession = AVCaptureSession()
         self.captureSession?.beginConfiguration()
-        
+
         self.videoDataOutput = AVCaptureVideoDataOutput()
         self.videoDataOutput?.videoSettings = ["kCVPixelBufferPixelFormatTypeKey": "BGRA"]
         self.videoDataOutput?.setSampleBufferDelegate(self, queue: DispatchQueue.main)
         self.captureSession?.addOutput(self.videoDataOutput!)
         self.captureSession?.sessionPreset = .photo
-        
+
         let devices = AVCaptureDevice.devices()
         for device in devices {
             if device.hasMediaType(AVMediaType.video) && device.position == AVCaptureDevice.Position.back {
@@ -48,35 +48,34 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
                 break
             }
         }
-        
+
         do {
             self.input = try AVCaptureDeviceInput(device: self.device!)
         } catch {
             assert(false)
         }
-        
+
         self.captureSession?.addInput(self.input!)
         self.captureSession?.commitConfiguration()
-        
+
         do {
             try self.device?.lockForConfiguration()
             // set exposure mode
             // set locked mode
-        }
-        catch {
-            
+        } catch {
+
         }
         self.device?.unlockForConfiguration()
     }
-    
+
     func startCapturing() {
         self.captureSession?.startRunning()
     }
-    
+
     func stopCapturing() {
         self.captureSession?.stopRunning()
     }
-    
+
     // TODO: fancy swift getter/setter
     func setOrientation(orientation: AVCaptureVideoOrientation) {
         let conn = self.videoDataOutput?.connection(with: AVMediaType.video)
@@ -93,26 +92,28 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         self.input = nil
         self.device = nil
     }
-    
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+
+    func captureOutput(_ output: AVCaptureOutput,
+                       didOutput sampleBuffer: CMSampleBuffer,
+                       from connection: AVCaptureConnection) {
         // TODO: add autorelease pool here
-        
-        let imageBuffer : CVPixelBuffer? = CMSampleBufferGetImageBuffer(sampleBuffer)
+
+        let imageBuffer: CVPixelBuffer? = CMSampleBufferGetImageBuffer(sampleBuffer)
         let srcPtr = Unmanaged.passUnretained(imageBuffer!).toOpaque()
         let pixelBuffer = Unmanaged<CVPixelBuffer>.fromOpaque(srcPtr).takeUnretainedValue()
-        
+
         let detector = ContourDetector()
         let lines = detector.detectLines(pixelBuffer)!
-        
+
 //        let p1 = CGPoint(x: 0, y: 0)
 //        let p2 = CGPoint(x: 1000, y: 1000)
 //        let line = Line()
 //        line.p1 = p1
 //        line.p2 = p2
 //        let lines = [ line ]
-        
+
         self.lineOutput?.displayLines(lines)
-        
+
         self.videoLayer?.enqueue(sampleBuffer)
         self.videoLayer?.setNeedsDisplay()
     }
