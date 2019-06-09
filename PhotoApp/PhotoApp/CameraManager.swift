@@ -20,26 +20,30 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     var input: AVCaptureDeviceInput?
     var videoDataOutput: AVCaptureVideoDataOutput?
     var videoLayer: AVSampleBufferDisplayLayer?
+    var sessionQueue: dispatch_queue_serial_t
     weak var lineOutput: LineOutputDelegate?
 
     init(with layer: AVSampleBufferDisplayLayer) {
+        sessionQueue = dispatch_queue_serial_t(label: "capture session queue")
+        videoLayer = layer
         super.init()
-
-        self.videoLayer = layer
-        initCameraController()
-        setOrientation(orientation: AVCaptureVideoOrientation.portrait)
-        startCapturing()
+        if initCamera() {
+            setOrientation(AVCaptureVideoOrientation.portrait)
+            startCapturing()
+        } else {
+            print("ERROR: Can't init camera!")
+        }
     }
 
-    func initCameraController() {
-        self.captureSession = AVCaptureSession()
-        self.captureSession?.beginConfiguration()
+    private func initCamera() -> Bool {
+        captureSession = AVCaptureSession()
+        captureSession?.beginConfiguration()
 
-        self.videoDataOutput = AVCaptureVideoDataOutput()
-        self.videoDataOutput?.videoSettings = ["kCVPixelBufferPixelFormatTypeKey": "BGRA"]
-        self.videoDataOutput?.setSampleBufferDelegate(self, queue: DispatchQueue.main)
-        self.captureSession?.addOutput(self.videoDataOutput!)
-        self.captureSession?.sessionPreset = .photo
+        videoDataOutput = AVCaptureVideoDataOutput()
+        videoDataOutput?.videoSettings = [kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_32BGRA] as [String: Any]
+        videoDataOutput?.setSampleBufferDelegate(self, queue: DispatchQueue.main)
+        captureSession?.addOutput(videoDataOutput!)
+        captureSession?.sessionPreset = .photo
 
         let devices = AVCaptureDevice.devices()
         for device in devices {
@@ -49,72 +53,61 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
             }
         }
 
-        do {
-            self.input = try AVCaptureDeviceInput(device: self.device!)
-        } catch {
-            assert(false)
+        guard let device = self.device else {
+            return false
         }
 
-        self.captureSession?.addInput(self.input!)
-        self.captureSession?.commitConfiguration()
-
         do {
-            try self.device?.lockForConfiguration()
-            // set exposure mode
-            // set locked mode
+            input = try AVCaptureDeviceInput(device: device)
         } catch {
-
+            return false
         }
-        self.device?.unlockForConfiguration()
+
+        captureSession?.addInput(input!)
+        captureSession?.commitConfiguration()
+
+        return true
     }
 
-    func startCapturing() {
-        self.captureSession?.startRunning()
+    private func startCapturing() {
+        sessionQueue.async {
+            self.captureSession?.startRunning()
+        }
     }
 
-    func stopCapturing() {
-        self.captureSession?.stopRunning()
+    private func stopCapturing() {
+        sessionQueue.async {
+            self.captureSession?.stopRunning()
+        }
     }
 
-    // TODO: fancy swift getter/setter
-    func setOrientation(orientation: AVCaptureVideoOrientation) {
-        let conn = self.videoDataOutput?.connection(with: AVMediaType.video)
-        self.captureSession?.beginConfiguration()
-        conn?.videoOrientation = orientation
-        self.captureSession?.commitConfiguration()
-    }
-
-    // TODO: not-ARC
-    func releaseCapturingDevice() {
-        self.stopCapturing()
-        self.captureSession = nil
-        self.videoDataOutput = nil
-        self.input = nil
-        self.device = nil
+    private func setOrientation(_ orientation: AVCaptureVideoOrientation) {
+        let connection = videoDataOutput?.connection(with: AVMediaType.video)
+        captureSession?.beginConfiguration()
+        connection?.videoOrientation = orientation
+        captureSession?.commitConfiguration()
     }
 
     func captureOutput(_ output: AVCaptureOutput,
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
-        // TODO: add autorelease pool here
+        autoreleasepool {
+            let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)
 
-        let imageBuffer: CVPixelBuffer? = CMSampleBufferGetImageBuffer(sampleBuffer)
-        let srcPtr = Unmanaged.passUnretained(imageBuffer!).toOpaque()
-        let pixelBuffer = Unmanaged<CVPixelBuffer>.fromOpaque(srcPtr).takeUnretainedValue()
+            guard imageBuffer != nil else {
+                return
+            }
 
-        let detector = ContourDetector()
-        let lines = detector.detectLines(pixelBuffer)!
+            let srcPtr = Unmanaged.passUnretained(imageBuffer!).toOpaque()
+            let pixelBuffer = Unmanaged<CVPixelBuffer>.fromOpaque(srcPtr).takeUnretainedValue()
 
-//        let p1 = CGPoint(x: 0, y: 0)
-//        let p2 = CGPoint(x: 1000, y: 1000)
-//        let line = Line()
-//        line.p1 = p1
-//        line.p2 = p2
-//        let lines = [ line ]
+            let detector = ContourDetector()
+            let lines = detector.detectLines(pixelBuffer)!
 
-        self.lineOutput?.displayLines(lines)
+            lineOutput?.displayLines(lines)
 
-        self.videoLayer?.enqueue(sampleBuffer)
-        self.videoLayer?.setNeedsDisplay()
+            videoLayer?.enqueue(sampleBuffer)
+            videoLayer?.setNeedsDisplay()
+        }
     }
 }

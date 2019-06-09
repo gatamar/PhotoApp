@@ -170,7 +170,6 @@ CGPoint CGPointScaled(const CGPoint& p, float scale)
     return CGPointMake(p.x*scale, p.y*scale);
 }
 
-// TODO: do it with CGPoint
 void smoothLineWithGaussianKernel(std::vector<CGPoint>& vec, int kern_size, float sigma)
 {
     if (vec.size()<=1) return;

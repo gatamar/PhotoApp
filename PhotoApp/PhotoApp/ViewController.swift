@@ -21,41 +21,40 @@ class ViewController: UIViewController, LineOutputDelegate {
         initCameraManager()
     }
 
-    func initVideoLayer() {
-        if self.videoLayer == nil {
-            let topToolbarHeight = 50 as CGFloat
-            let bottomToolbarHeight = 50 as CGFloat
-            let viewFrame = self.view.frame
+    private func initVideoLayer() {
+        if videoLayer == nil {
+            let topToolbarHeight: CGFloat = 50
+            let bottomToolbarHeight: CGFloat = 50
+            let viewFrame = view.frame
             let videoLayerFrame = CGRect(x: 0,
                                          y: topToolbarHeight,
                                          width: viewFrame.width,
                                          height: viewFrame.height-(topToolbarHeight+bottomToolbarHeight))
-            self.videoLayer = AVSampleBufferDisplayLayer()
-            self.videoLayer?.videoGravity = AVLayerVideoGravity.resizeAspectFill
-            self.videoLayer?.frame = videoLayerFrame
+            videoLayer = AVSampleBufferDisplayLayer()
+            videoLayer?.videoGravity = AVLayerVideoGravity.resizeAspectFill
+            videoLayer?.frame = videoLayerFrame
 
-            self.view.layer.addSublayer(self.videoLayer!)
+            view.layer.addSublayer(videoLayer!)
         }
     }
 
-    func initCameraManager() {
-        // TODO: fix constructor naming
-        self.cameraManager = CameraManager(with: self.videoLayer!)
-        self.cameraManager!.lineOutput = self
+    private func initCameraManager() {
+        cameraManager = CameraManager(with: videoLayer!)
+        cameraManager!.lineOutput = self
     }
 
     func displayLines(_ lines: [Line?]) {
 
-        if self.edgesLayer == nil {
+        if edgesLayer == nil {
             let layer = CAShapeLayer()
-            layer.frame = self.videoLayer!.bounds
+            layer.frame = videoLayer!.bounds
             layer.lineWidth = 1.5
             layer.fillColor = nil
             layer.strokeColor = UIColor.white.cgColor
             layer.opacity = 1.0
             layer.isOpaque = true
-            self.edgesLayer = layer
-            self.videoLayer!.addSublayer(self.edgesLayer!)
+            edgesLayer = layer
+            videoLayer!.addSublayer(edgesLayer!)
         }
 
         let path = CGMutablePath()
@@ -64,8 +63,7 @@ class ViewController: UIViewController, LineOutputDelegate {
             path.addLine(to: line!.p2)
         }
 
-        let layer2 = self.edgesLayer!
-        // TODO: profile for memory leaks
-        self.edgesLayer?.path = path
+        let layer2 = edgesLayer!
+        edgesLayer?.path = path
     }
 }
