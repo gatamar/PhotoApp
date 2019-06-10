@@ -12,8 +12,8 @@ import AVFoundation
 class ViewController: UIViewController, LineOutputDelegate {
 
     var videoLayer: AVSampleBufferDisplayLayer?
-    var edgesLayer: CAShapeLayer?
-    var cameraManager: CameraManager?
+    private var edgesLayer: CAShapeLayer?
+    private var cameraManager: CameraManager?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -63,7 +63,6 @@ class ViewController: UIViewController, LineOutputDelegate {
             path.addLine(to: line!.p2)
         }
 
-        let layer2 = edgesLayer!
         edgesLayer?.path = path
     }
 }

@@ -15,14 +15,14 @@ protocol LineOutputDelegate: class {
 
 class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
 
-    var captureSession: AVCaptureSession?
-    var device: AVCaptureDevice?
-    var input: AVCaptureDeviceInput?
-    var videoDataOutput: AVCaptureVideoDataOutput?
-    var videoLayer: AVSampleBufferDisplayLayer?
-    var sessionQueue: dispatch_queue_serial_t
+    private var captureSession: AVCaptureSession?
+    private var device: AVCaptureDevice?
+    private var input: AVCaptureDeviceInput?
+    private var videoDataOutput: AVCaptureVideoDataOutput?
+    private var videoLayer: AVSampleBufferDisplayLayer?
+    private var sessionQueue: dispatch_queue_serial_t
     weak var lineOutput: LineOutputDelegate?
-
+    
     init(with layer: AVSampleBufferDisplayLayer) {
         sessionQueue = dispatch_queue_serial_t(label: "capture session queue")
         videoLayer = layer

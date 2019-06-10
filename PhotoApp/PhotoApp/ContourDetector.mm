@@ -10,6 +10,27 @@
 #import <CoreGraphics/CoreGraphics.h>
 #include <opencv2/imgproc.hpp>
 
+class ImageToLayerTransform
+{
+private:
+    float m_downscale = 0;
+    CGSize m_shift = CGSizeZero;
+    
+public:
+    ImageToLayerTransform(){}
+    ImageToLayerTransform(float imageW, float imageH, float layerW, float layerH);
+    float getDownscale() const { return m_downscale; }
+    CGSize getShift() const { return m_shift; }
+};
+
+ImageToLayerTransform::ImageToLayerTransform(float imageW, float imageH, float layerW, float layerH)
+{
+    m_downscale = std::max(layerW/imageW, layerH/imageH);
+    
+    float imageScaledW = imageW*m_downscale, imageScaledH = imageH*m_downscale;
+    m_shift = CGSizeMake((imageScaledW-layerW)/2, (imageScaledH-layerH)/2);
+}
+
 void smoothLineWithGaussianKernel(std::vector<CGPoint>& vec, int kern_size, float sigma);
 CGPoint CGPointScaled(const CGPoint& p, float scale);
 
@@ -106,7 +127,7 @@ std::vector<std::vector<cv::Point>> getContours(cv::Mat& edges, ContourParams& p
 @implementation Line
 @end
 
-NSArray<Line*>* processImageForLines(const MyImage& img, ContourParams& params)
+NSArray<Line*>* processImageForLines(const MyImage& img, ContourParams& params, const ImageToLayerTransform& transform)
 {
     cv::Mat src = cv::Mat( img.getHeight(), img.getWidth(), CV_8UC4, img.getData() );
     assert( !src.empty() );
@@ -146,13 +167,25 @@ NSArray<Line*>* processImageForLines(const MyImage& img, ContourParams& params)
         for ( int k=1; k<contours2[i].size(); ++k)
         {
             Line* line = [[Line alloc] init];
-            line.p1 = CGPointScaled( CGPointMake(contours2[i][k-1].x, contours2[i][k-1].y), work_scale);
-            line.p2 = CGPointScaled( CGPointMake(contours2[i][k].x, contours2[i][k].y), work_scale);
+            
+            float downscale = transform.getDownscale();
+            CGSize shift = transform.getShift();
+            shift.width /= downscale;
+            shift.height /= downscale;
+            
+            auto transformPoint = [=](const CGPoint& p) -> CGPoint
+            {
+                float x = (p.x*work_scale-shift.width)*downscale;
+                float y = (p.y*work_scale-shift.height)*downscale;
+                return CGPointMake(x, y);
+            };
+            
+            line.p1 = transformPoint(contours2[i][k-1]);
+            line.p2 = transformPoint(contours2[i][k]);
+            
             [resultLines addObject:line];
         }
     }
-    
-    // TODO: filter this lines like in work proj.
     
     return resultLines;
 }
@@ -216,7 +249,8 @@ void smoothLineWithGaussianKernel(std::vector<CGPoint>& vec, int kern_size, floa
 {
     MyImage my_image = [self createMyImageFromPixelBuffer:pixelBuffer];
     ContourParams params;
-    return processImageForLines(my_image, params);
+    ImageToLayerTransform transform(750, 1000, 375, 567);
+    return processImageForLines(my_image, params, transform);
 }
 
 - (CVPixelBufferRef)createBufferDeepCopy:(CVPixelBufferRef)pixelBuffer
