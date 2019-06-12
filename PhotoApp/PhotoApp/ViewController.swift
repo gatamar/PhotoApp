@@ -65,4 +65,8 @@ class ViewController: UIViewController, LineOutputDelegate {
 
         edgesLayer?.path = path
     }
+    
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        return .portrait
+    }
 }
