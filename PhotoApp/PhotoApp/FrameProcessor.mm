@@ -1,10 +1,4 @@
-//
-//  ContourDetector.cpp
-//  PhotoApp
-//
-//  Created by Olha Pavliuk on 5/29/19.
 //  Copyright © 2019 Olha Pavliuk. All rights reserved.
-//
 
 #import "FrameProcessor.h"
 #import "ContourDetectorAlgorithm.h"
@@ -26,47 +20,6 @@ public:
     CGSize getShift() const { return m_shift; }
 };
 
-ImageToLayerTransform::ImageToLayerTransform(float imageW, float imageH, float layerW, float layerH)
-{
-    m_downscale = std::max(layerW/imageW, layerH/imageH);
-    
-    float imageScaledW = imageW*m_downscale, imageScaledH = imageH*m_downscale;
-    m_shift = CGSizeMake((imageScaledW-layerW)/2, (imageScaledH-layerH)/2);
-}
-
-NSArray<Line*>* detectLinesInternal(const MyImage& img, ContourParams& params, const ImageToLayerTransform& transform)
-{
-    float algo_scale = 1;
-    std::vector<std::vector<CGPoint>> contours = findContours(img, params, algo_scale);
-    
-    float downscale = transform.getDownscale();
-    CGSize shift = transform.getShift();
-    shift.width /= downscale;
-    shift.height /= downscale;
-    
-    auto transformPoint = [=](const CGPoint& p) -> CGPoint
-    {
-        float x = (p.x*algo_scale-shift.width)*downscale;
-        float y = (p.y*algo_scale-shift.height)*downscale;
-        return CGPointMake(x, y);
-    };
-    
-    NSMutableArray<Line*>* resultLines = [[NSMutableArray alloc] init];
-    
-    for ( int i=0; i<contours.size(); ++i)
-        for ( int k=1; k<contours[i].size(); ++k)
-        {
-            Line* line = [[Line alloc] init];
-            
-            line.p1 = transformPoint(contours[i][k-1]);
-            line.p2 = transformPoint(contours[i][k]);
-            
-            [resultLines addObject:line];
-        }
-    
-    return resultLines;
-}
-
 @interface FrameProcessor ()
 
 @property (nonatomic, weak) id<FrameProcessorDelegate> delegate;
@@ -83,6 +36,21 @@ NSArray<Line*>* detectLinesInternal(const MyImage& img, ContourParams& params, c
         self.delegate = delegate;
     }
     return self;
+}
+
+// Synchronous operation. Modifies "bgra_bytes"
+- (void)applySimpleFilter:(unsigned char*)bgra_bytes
+                withWidth:(int)width
+                andHeight:(int)height
+           andBytesPerRow:(int)bytesPerRow
+{
+    for (int y = 0; y<height; ++y)
+    {
+        for (int b=0; b<width*4; b+=4)
+        {
+            bgra_bytes[ y*bytesPerRow + b+1 ] = 0;
+        }
+    }
 }
 
 - (NSArray<Line*>*)detectLines:(CVPixelBufferRef)pixelBuffer
@@ -144,4 +112,45 @@ NSArray<Line*>* detectLinesInternal(const MyImage& img, ContourParams& params, c
     return MyImage(width, height, rgba_data);
 }
 
+NSArray<Line*>* detectLinesInternal(const MyImage& img, ContourParams& params, const ImageToLayerTransform& transform)
+{
+    float algo_scale = 1;
+    std::vector<std::vector<CGPoint>> contours = findContours(img, params, algo_scale);
+    
+    float downscale = transform.getDownscale();
+    CGSize shift = transform.getShift();
+    shift.width /= downscale;
+    shift.height /= downscale;
+    
+    auto transformPoint = [=](const CGPoint& p) -> CGPoint
+    {
+        float x = (p.x*algo_scale-shift.width)*downscale;
+        float y = (p.y*algo_scale-shift.height)*downscale;
+        return CGPointMake(x, y);
+    };
+    
+    NSMutableArray<Line*>* resultLines = [[NSMutableArray alloc] init];
+    
+    for ( int i=0; i<contours.size(); ++i)
+        for ( int k=1; k<contours[i].size(); ++k)
+        {
+            Line* line = [[Line alloc] init];
+            
+            line.p1 = transformPoint(contours[i][k-1]);
+            line.p2 = transformPoint(contours[i][k]);
+            
+            [resultLines addObject:line];
+        }
+    
+    return resultLines;
+}
+
 @end
+
+ImageToLayerTransform::ImageToLayerTransform(float imageW, float imageH, float layerW, float layerH)
+{
+    m_downscale = std::max(layerW/imageW, layerH/imageH);
+    
+    float imageScaledW = imageW*m_downscale, imageScaledH = imageH*m_downscale;
+    m_shift = CGSizeMake((imageScaledW-layerW)/2, (imageScaledH-layerH)/2);
+}

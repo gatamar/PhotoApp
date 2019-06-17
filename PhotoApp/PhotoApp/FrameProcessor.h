@@ -1,11 +1,3 @@
-//
-//  ContourDetector.hpp
-//  PhotoApp
-//
-//  Created by Olha Pavliuk on 5/29/19.
-//  Copyright © 2019 Olha Pavliuk. All rights reserved.
-//
-
 #import <Foundation/Foundation.h>
 #import <CoreVideo/CoreVideo.h>
 
@@ -34,7 +26,7 @@
 - (void)applySimpleFilter:(unsigned char*)bgra_bytes
                 withWidth:(int)width
                 andHeight:(int)height
-                andStride:(int)stride;
+           andBytesPerRow:(int)bytesPerRow;
 
 // Synchronous operation. Returns detected lines.
 - (NSArray<Line*>*)detectLines1:(CVPixelBufferRef)pixelBuffer;

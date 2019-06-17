@@ -13,8 +13,8 @@ protocol LineOutputDelegate: class {
     func displayLines(_ lines: [Line?])
 }
 
-class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
-
+class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, FrameProcessorDelegate {
+    
     private var captureSession: AVCaptureSession?
     private var device: AVCaptureDevice?
     private var input: AVCaptureDeviceInput?
@@ -92,25 +92,32 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
         autoreleasepool {
-            let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)
-
-            guard imageBuffer != nil else {
+            guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
                 return
             }
 
-            let srcPtr = Unmanaged.passUnretained(imageBuffer!).toOpaque()
-            let pixelBuffer = Unmanaged<CVPixelBuffer>.fromOpaque(srcPtr).takeUnretainedValue()
-
-            let frameProcessor = FrameProcessor()
-            frameProcessor.aspectFillSize = videoLayer!.frame.size
+            let lockResult = CVPixelBufferLockBaseAddress(pixelBuffer, [])
+            assert( lockResult == kCVReturnSuccess )
             
-            //frameProcessor.applySimpleFilter(UnsafeMutablePointer<UInt8>!, withWidth: Int32, andHeight: Int32, andStride: Int32)
+            let width = Int32(CVPixelBufferGetWidth(pixelBuffer))
+            let height = Int32(CVPixelBufferGetHeight(pixelBuffer))
+            let bytesPerRow = Int32(CVPixelBufferGetBytesPerRow(pixelBuffer))
+            let dataSize = CVPixelBufferGetDataSize(pixelBuffer)
             
-            let lines = frameProcessor.detectLines(pixelBuffer)!
-            lineOutput?.displayLines(lines)
-
+            let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer)
+            let baseAddressTyped = baseAddress?.bindMemory(to: UInt8.self, capacity: dataSize)
+            
+            let frameProcessor = FrameProcessor(delegate: self)
+            frameProcessor?.applySimpleFilter(baseAddressTyped, withWidth: width, andHeight: height, andBytesPerRow: bytesPerRow)
+            
+            CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
+            
             videoLayer!.enqueue(sampleBuffer)
             videoLayer!.setNeedsDisplay()
         }
+    }
+    
+    func onLinesDetected(_ lines: [Line]!) {
+        lineOutput?.displayLines(lines)
     }
 }
