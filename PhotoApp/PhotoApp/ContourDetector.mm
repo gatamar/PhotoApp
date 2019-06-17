@@ -88,15 +88,11 @@ cv::Mat getBinaryImageWithContours(int rows, int cols, const std::vector<std::ve
     {
         if ( contours[i].size() < params.m_min_contour_size ) continue;
         
-        //unsigned colors [] = { 0xFFFF00, 0x00FF00, 0xFF00FF, 0xFF0000, 0x0000FF };
         for ( int p=1; p<contours[i].size(); ++p)
         {
-            //const cv::Point& pt = contours[i][p];
             cv::line(contours_binary, contours[i][p-1], contours[i][p], cv::Scalar(255));
         }
     }
-    
-    //cv::dilate(contours_binary, contours_binary, cv::Mat());
     
     cv::blur(contours_binary, contours_binary, cv::Size(3,3));
     return contours_binary;
@@ -246,10 +242,13 @@ void smoothLineWithGaussianKernel(std::vector<CGPoint>& vec, int kern_size, floa
 @implementation ContourDetector
 
 - (NSArray<Line*>*)detectLines:(CVPixelBufferRef)pixelBuffer
+             forAspectFillSize:(CGSize)resultSize
 {
     MyImage my_image = [self createMyImageFromPixelBuffer:pixelBuffer];
     ContourParams params;
-    ImageToLayerTransform transform(750, 1000, 375, 567);
+    int imageW = (int)CVPixelBufferGetWidth(pixelBuffer);
+    int imageH = (int)CVPixelBufferGetHeight(pixelBuffer);
+    ImageToLayerTransform transform(imageW, imageH, resultSize.width, resultSize.height);
     return processImageForLines(my_image, params, transform);
 }
 

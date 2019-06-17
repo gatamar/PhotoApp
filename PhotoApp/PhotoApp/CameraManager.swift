@@ -102,12 +102,12 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
             let pixelBuffer = Unmanaged<CVPixelBuffer>.fromOpaque(srcPtr).takeUnretainedValue()
 
             let detector = ContourDetector()
-            let lines = detector.detectLines(pixelBuffer)!
-
+            let lines = detector.detectLines(pixelBuffer, forAspectFill: videoLayer!.frame.size)!
+            
             lineOutput?.displayLines(lines)
 
-            videoLayer?.enqueue(sampleBuffer)
-            videoLayer?.setNeedsDisplay()
+            videoLayer!.enqueue(sampleBuffer)
+            videoLayer!.setNeedsDisplay()
         }
     }
 }

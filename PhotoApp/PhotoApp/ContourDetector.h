@@ -18,7 +18,8 @@
 
 @interface ContourDetector : NSObject
 
-- (NSArray<Line*>*)detectLines:(CVPixelBufferRef)pixelBuffer;
+- (NSArray<Line*>*)detectLines:(CVPixelBufferRef)pixelBuffer
+             forAspectFillSize:(CGSize)resultSize;
 
 @end
 
