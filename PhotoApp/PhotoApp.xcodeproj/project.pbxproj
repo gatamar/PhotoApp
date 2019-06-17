@@ -7,8 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4F3D463122B7FA370073BD4F /* ContourDetectorAlgorithm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4F3D462F22B7FA370073BD4F /* ContourDetectorAlgorithm.cpp */; };
 		4FE02B72229F01AD00FBF257 /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FE02B71229F01AC00FBF257 /* opencv2.framework */; };
-		4FE02B76229F01D400FBF257 /* ContourDetector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4FE02B74229F01D400FBF257 /* ContourDetector.mm */; };
+		4FE02B76229F01D400FBF257 /* FrameProcessor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4FE02B74229F01D400FBF257 /* FrameProcessor.mm */; };
 		4FFE371C2296631200878DDD /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FFE371B2296631200878DDD /* AppDelegate.swift */; };
 		4FFE371E2296631200878DDD /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FFE371D2296631200878DDD /* ViewController.swift */; };
 		4FFE37212296631200878DDD /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4FFE371F2296631200878DDD /* Main.storyboard */; };
@@ -19,10 +20,12 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		4F3D462F22B7FA370073BD4F /* ContourDetectorAlgorithm.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ContourDetectorAlgorithm.cpp; sourceTree = "<group>"; };
+		4F3D463022B7FA370073BD4F /* ContourDetectorAlgorithm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ContourDetectorAlgorithm.h; sourceTree = "<group>"; };
 		4FE02B71229F01AC00FBF257 /* opencv2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = opencv2.framework; sourceTree = "<group>"; };
 		4FE02B73229F01D400FBF257 /* PhotoApp-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "PhotoApp-Bridging-Header.h"; sourceTree = "<group>"; };
-		4FE02B74229F01D400FBF257 /* ContourDetector.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ContourDetector.mm; sourceTree = "<group>"; };
-		4FE02B75229F01D400FBF257 /* ContourDetector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ContourDetector.h; sourceTree = "<group>"; };
+		4FE02B74229F01D400FBF257 /* FrameProcessor.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FrameProcessor.mm; sourceTree = "<group>"; };
+		4FE02B75229F01D400FBF257 /* FrameProcessor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FrameProcessor.h; sourceTree = "<group>"; };
 		4FFE37182296631200878DDD /* PhotoApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PhotoApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FFE371B2296631200878DDD /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		4FFE371D2296631200878DDD /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -83,8 +86,10 @@
 				4FFE37222296631600878DDD /* Assets.xcassets */,
 				4FFE37242296631600878DDD /* LaunchScreen.storyboard */,
 				4FFE37272296631600878DDD /* Info.plist */,
-				4FE02B74229F01D400FBF257 /* ContourDetector.mm */,
-				4FE02B75229F01D400FBF257 /* ContourDetector.h */,
+				4FE02B74229F01D400FBF257 /* FrameProcessor.mm */,
+				4FE02B75229F01D400FBF257 /* FrameProcessor.h */,
+				4F3D462F22B7FA370073BD4F /* ContourDetectorAlgorithm.cpp */,
+				4F3D463022B7FA370073BD4F /* ContourDetectorAlgorithm.h */,
 				4FE02B73229F01D400FBF257 /* PhotoApp-Bridging-Header.h */,
 			);
 			path = PhotoApp;
@@ -170,7 +175,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4FE02B76229F01D400FBF257 /* ContourDetector.mm in Sources */,
+				4FE02B76229F01D400FBF257 /* FrameProcessor.mm in Sources */,
+				4F3D463122B7FA370073BD4F /* ContourDetectorAlgorithm.cpp in Sources */,
 				4FFE371E2296631200878DDD /* ViewController.swift in Sources */,
 				4FFE372E2296786D00878DDD /* CameraManager.swift in Sources */,
 				4FFE371C2296631200878DDD /* AppDelegate.swift in Sources */,
