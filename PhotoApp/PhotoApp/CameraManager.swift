@@ -101,11 +101,11 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, Fra
                 let frameProcessor = FrameProcessor(delegate: self)!
                 frameProcessor.aspectFillSize = videoLayer!.frame.size
                 
-                let opaquePtr = Unmanaged<CVPixelBuffer>.passRetained(pixelBuffer).toOpaque()
-                let pixelBufferRetained = Unmanaged<CVPixelBuffer>.fromOpaque(opaquePtr).takeUnretainedValue()
+                //let opaquePointer = Unmanaged<CVPixelBuffer>.passRetained(pixelBuffer).toOpaque()
+                //let pixelBufferRetained = Unmanaged<CVPixelBuffer>.passRetained(pixelBuffer).toOpaque()
                 
-                frameProcessor.detectLines2(pixelBufferRetained)
-                algoIsRunning = true
+                frameProcessor.detectLines3(pixelBuffer)
+                //algoIsRunning = true
             }
             
             videoLayer!.enqueue(sampleBuffer)
