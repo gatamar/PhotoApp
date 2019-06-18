@@ -1,6 +1,5 @@
 #import <Foundation/Foundation.h>
 #import <CoreVideo/CoreVideo.h>
-#import "PhotoApp-Swift.h"
 
 @interface Line: NSObject
 
