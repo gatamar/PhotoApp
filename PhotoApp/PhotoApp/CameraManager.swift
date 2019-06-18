@@ -88,29 +88,25 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, Fra
         captureSession?.commitConfiguration()
     }
 
+    var algoIsRunning: Bool = false
     func captureOutput(_ output: AVCaptureOutput,
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
         autoreleasepool {
-            guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+            guard let pixelBuffer: CVPixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
                 return
             }
 
-            let lockResult = CVPixelBufferLockBaseAddress(pixelBuffer, [])
-            assert( lockResult == kCVReturnSuccess )
-            
-            let width = Int32(CVPixelBufferGetWidth(pixelBuffer))
-            let height = Int32(CVPixelBufferGetHeight(pixelBuffer))
-            let bytesPerRow = Int32(CVPixelBufferGetBytesPerRow(pixelBuffer))
-            let dataSize = CVPixelBufferGetDataSize(pixelBuffer)
-            
-            let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer)
-            let baseAddressTyped = baseAddress?.bindMemory(to: UInt8.self, capacity: dataSize)
-            
-            let frameProcessor = FrameProcessor(delegate: self)
-            frameProcessor?.applySimpleFilter(baseAddressTyped, withWidth: width, andHeight: height, andBytesPerRow: bytesPerRow)
-            
-            CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
+            if !algoIsRunning {
+                let frameProcessor = FrameProcessor(delegate: self)!
+                frameProcessor.aspectFillSize = videoLayer!.frame.size
+                
+                let opaquePtr = Unmanaged<CVPixelBuffer>.passRetained(pixelBuffer).toOpaque()
+                let pixelBufferRetained = Unmanaged<CVPixelBuffer>.fromOpaque(opaquePtr).takeUnretainedValue()
+                
+                frameProcessor.detectLines2(pixelBufferRetained)
+                algoIsRunning = true
+            }
             
             videoLayer!.enqueue(sampleBuffer)
             videoLayer!.setNeedsDisplay()
@@ -119,5 +115,6 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, Fra
     
     func onLinesDetected(_ lines: [Line]!) {
         lineOutput?.displayLines(lines)
+        algoIsRunning = false
     }
 }

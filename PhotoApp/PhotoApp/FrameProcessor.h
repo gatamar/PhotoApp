@@ -20,8 +20,6 @@
 
 - (id)initWithDelegate:(id<FrameProcessorDelegate>)delegate;
 
-- (NSArray<Line*>*)detectLines:(CVPixelBufferRef)pixelBuffer;
-
 // Synchronous operation. Modifies "bgra_bytes"
 - (void)applySimpleFilter:(unsigned char*)bgra_bytes
                 withWidth:(int)width
@@ -38,6 +36,8 @@
 // Asynchronous operation. Processes lines in background thread.
 // Copies "pixelBuffer" to avoid retaining it.
 - (void)detectLines3:(CVPixelBufferRef)pixelBuffer;
+
+- (int)getReferencesCount:(CVPixelBufferRef)pixelBuffer;
 
 @end
 

@@ -53,7 +53,8 @@ public:
     }
 }
 
-- (NSArray<Line*>*)detectLines:(CVPixelBufferRef)pixelBuffer
+// Synchronous operation. Returns detected lines.
+- (NSArray<Line*>*)detectLines1:(CVPixelBufferRef)pixelBuffer
 {
     assert( !CGSizeEqualToSize(self.aspectFillSize, CGSizeZero) );
     MyImage my_image = [self createMyImageFromPixelBuffer:pixelBuffer];
@@ -62,6 +63,48 @@ public:
     int imageH = (int)CVPixelBufferGetHeight(pixelBuffer);
     ImageToLayerTransform transform(imageW, imageH, _aspectFillSize.width, _aspectFillSize.height);
     return detectLinesInternal(my_image, params, transform);
+}
+
+// Asynchronous operation. Processes lines in background thread.
+// Receives retained "pixelBuffer". Releases "pixelBuffer" after work is done.
+- (void)detectLines2:(CVPixelBufferRef)pixelBuffer
+{
+    assert( !CGSizeEqualToSize(self.aspectFillSize, CGSizeZero) );
+    
+    MyImage* image = [self createMyImageFromPixelBufferPtr:pixelBuffer];
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^()
+    {
+        ContourParams params;
+        int imageW = (int)CVPixelBufferGetWidth(pixelBuffer);
+        int imageH = (int)CVPixelBufferGetHeight(pixelBuffer);
+        
+        //usleep(2000000);
+        CFRelease(pixelBuffer);
+        
+        ImageToLayerTransform transform = ImageToLayerTransform(imageW, imageH, self.aspectFillSize.width, self.aspectFillSize.height);
+
+        NSArray<Line*>* lines = detectLinesInternal(*image, params, transform);
+
+        delete image;
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+           [self.delegate onLinesDetected:lines];
+        });
+    });
+}
+
+// Asynchronous operation. Processes lines in background thread.
+// Copies "pixelBuffer" to avoid retaining it.
+- (void)detectLines3:(CVPixelBufferRef)pixelBuffer
+{
+    CVPixelBufferRef pixelBufferCopy = [self createBufferDeepCopy:pixelBuffer];
+    [self detectLines2:pixelBufferCopy];
+}
+
+- (int)getReferencesCount:(CVPixelBufferRef)pixelBuffer
+{
+    return (int)CFGetRetainCount(pixelBuffer);
 }
 
 - (CVPixelBufferRef)createBufferDeepCopy:(CVPixelBufferRef)pixelBuffer
@@ -112,7 +155,34 @@ public:
     return MyImage(width, height, rgba_data);
 }
 
-NSArray<Line*>* detectLinesInternal(const MyImage& img, ContourParams& params, const ImageToLayerTransform& transform)
+- (MyImage*)createMyImageFromPixelBufferPtr:(CVPixelBufferRef)pixelBuffer
+{
+    CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+    int width = (int)CVPixelBufferGetWidth(pixelBuffer);
+    int height = (int)CVPixelBufferGetHeight(pixelBuffer);
+    size_t bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer);
+    
+    CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+    
+    unsigned char* baseAddress = (unsigned char*)CVPixelBufferGetBaseAddress(pixelBuffer);
+    
+    unsigned char *rgba_data = new unsigned char[width*height*4];
+    if ( bytesPerRow == width*4 )
+        memcpy(rgba_data, baseAddress, width*height*4);
+    else
+    {
+        for ( int y=0; y<height; ++y)
+        {
+            memcpy(rgba_data + y*width*4, baseAddress + y*bytesPerRow, width*4);
+        }
+    }
+    
+    CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+    
+    return new MyImage(width, height, rgba_data);
+}
+
+NSArray<Line*>* detectLinesInternal(const MyImage& img, const ContourParams& params, const ImageToLayerTransform& transform)
 {
     float algo_scale = 1;
     std::vector<std::vector<CGPoint>> contours = findContours(img, params, algo_scale);
