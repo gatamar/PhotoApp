@@ -20,11 +20,9 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, Fra
     private var input: AVCaptureDeviceInput?
     private var videoDataOutput: AVCaptureVideoDataOutput?
     private var videoLayer: AVSampleBufferDisplayLayer?
-    private var sessionQueue: dispatch_queue_serial_t
     weak var lineOutput: LineOutputDelegate?
     
     init(with layer: AVSampleBufferDisplayLayer) {
-        sessionQueue = dispatch_queue_serial_t(label: "capture session queue")
         videoLayer = layer
         super.init()
         if initCamera() {
@@ -70,15 +68,11 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, Fra
     }
 
     private func startCapturing() {
-        sessionQueue.async {
-            self.captureSession?.startRunning()
-        }
+        self.captureSession?.startRunning()
     }
 
     private func stopCapturing() {
-        sessionQueue.async {
-            self.captureSession?.stopRunning()
-        }
+        self.captureSession?.stopRunning()
     }
 
     private func setOrientation(_ orientation: AVCaptureVideoOrientation) {
@@ -89,6 +83,7 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, Fra
     }
 
     var algoIsRunning: Bool = false
+    var frameCount: Int = 0
     func captureOutput(_ output: AVCaptureOutput,
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
@@ -97,7 +92,9 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, Fra
                 return
             }
 
-            if !algoIsRunning {
+            frameCount = (frameCount + 1) % 5
+            
+            if !algoIsRunning && frameCount == 0 {
                 let frameProcessor = FrameProcessor(delegate: self)!
                 frameProcessor.aspectFillSize = videoLayer!.frame.size
                 
@@ -105,7 +102,7 @@ class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, Fra
                 //let pixelBufferRetained = Unmanaged<CVPixelBuffer>.passRetained(pixelBuffer).toOpaque()
                 
                 frameProcessor.detectLines3(pixelBuffer)
-                //algoIsRunning = true
+                algoIsRunning = true
             }
             
             videoLayer!.enqueue(sampleBuffer)
